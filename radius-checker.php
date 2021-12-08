@@ -28,8 +28,6 @@ You should have received a copy of the GNU General Public License
 along with 'Radius Checker'. If not, see https://www.gnu.org/licenses/gpl-2.0.html.
 */
 
-
-
 /**
  * Class IrnantoRadiusChecker for first setup
  */
@@ -64,7 +62,9 @@ class IrnantoRadiusChecker {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_init', array( $this, 'init_settings' ) );
-		add_shortcode( 'radius-checker', array($this, 'form_radius_checker' ) );
+		add_shortcode( 'radius-checker', array( $this, 'form_radius_checker' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		// add_filter( 'script_loader_tag', 'add_async_defer_attribute', 10, 2 );
 
 		$this->opt = get_option( 'irnanto_settings_radius' );
 	}
@@ -77,13 +77,13 @@ class IrnantoRadiusChecker {
 	}
 
 	/**
-	 * init setting for display in admin/backend
+	 * Init setting for display in admin/backend
 	 */
 	public function init_settings() {
-		
+
 		register_setting(
 			'irnanto_settings_radius_group',
-			'irnanto_settings_radius', // nama option
+			'irnanto_settings_radius', // nama option.
 			array( $this, 'validate' )
 		);
 
@@ -103,7 +103,7 @@ class IrnantoRadiusChecker {
 			array(
 				'label_for' => 'api',
 				'required'  => true,
-				'name' => 'api',
+				'name'      => 'api',
 			)
 		);
 		add_settings_field(
@@ -115,7 +115,7 @@ class IrnantoRadiusChecker {
 			array(
 				'label_for' => 'url',
 				'required'  => true,
-				'name' => 'url',
+				'name'      => 'url',
 			)
 		);
 
@@ -127,9 +127,9 @@ class IrnantoRadiusChecker {
 	 * @param array $args settings field args.
 	 */
 	public function text( $args ) {
-		$disabled  = '';
-		$required  = '';
-		$value = '';
+		$disabled = '';
+		$required = '';
+		$value    = '';
 		if ( 'api' === $args['label_for'] ) {
 			$value = isset( $this->opt['api'] ) ? $this->opt['api'] : '';
 		}
@@ -142,8 +142,7 @@ class IrnantoRadiusChecker {
 			$required = ' required';
 		}
 
-		$html  = sprintf( '<input type="text" class="regular-text" id="%1$s-%2$s" name="%1$s[%2$s]" value="%3$s"%4$s/>', 'irnanto_settings_radius', $args['name'], esc_attr( $value ), $disabled . $required );
-		// $html .= $this->get_field_description( $args );
+		$html = sprintf( '<input type="text" class="regular-text" id="%1$s-%2$s" name="%1$s[%2$s]" value="%3$s"%4$s/>', 'irnanto_settings_radius', $args['name'], esc_attr( $value ), $disabled . $required );
 		echo $html;
 	}
 
@@ -153,11 +152,11 @@ class IrnantoRadiusChecker {
 	 * @param array $args settings field args.
 	 */
 	public function url( $args ) {
-		$disabled  = '';
-		$required  = '';
-		$value = '';
-		if ( 'api' === $args['label_for'] ) {
-			$value = isset( $this->opt['api'] ) ? $this->opt['api'] : '';
+		$disabled = '';
+		$required = '';
+		$value    = '';
+		if ( 'url' === $args['label_for'] ) {
+			$value = isset( $this->opt['url'] ) ? $this->opt['url'] : '';
 		}
 
 		if ( isset( $args['disabled'] ) ) {
@@ -168,13 +167,12 @@ class IrnantoRadiusChecker {
 			$required = ' required';
 		}
 
-		$html  = sprintf( '<input type="url" class="regular-text" id="%1$s-%2$s" name="%1$s[%2$s]" value="%3$s"%4$s/>', 'irnanto_settings_radius', $args['name'], esc_attr( $value ), $disabled . $required );
-		// $html .= $this->get_field_description( $args );
+		$html = sprintf( '<input type="url" class="regular-text" id="%1$s-%2$s" name="%1$s[%2$s]" value="%3$s"%4$s/>', 'irnanto_settings_radius', $args['name'], esc_attr( $value ), $disabled . $required );
 		echo $html;
 	}
 
 	/**
-	 * page option to show form
+	 * Page option to show form
 	 */
 	public function page_settings() {
 		// Check required user capability
@@ -199,14 +197,53 @@ class IrnantoRadiusChecker {
 	/**
 	 * Form radius checker
 	 */
-	public function form_radius_checker($atts) {
+	public function form_radius_checker( $atts ) {
 		?>
 		<form method="post">
 			<h2>Check whether an address is inside or outside of the service area ?</h2>
 			<label for="address">Address :</label><input type="text" name="address" id="address">
 			<input type="submit" name="check" value="Check">
 		</form>
+		<div id="container">
+	      <div id="map"></div>
+	    </div>
 		<?php
+	}
+
+	/**
+	 * Enqueue script JS
+	 */
+	public function enqueue_scripts() {
+		if ( is_singular() ) {
+			global $post;
+			if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'radius-checker' ) ) {
+				if (isset( $this->opt['api'] )) {
+					wp_enqueue_script( 'irnantomap', plugin_dir_url( __FILE__ ) . 'assets/js/front.js', array(), '1.0.0', true );
+					wp_enqueue_script('googleapis', esc_url( add_query_arg( 'key', $this->opt['api'].'&callback=initMap', '//maps.googleapis.com/maps/api/js' )), array(), '1.0.0', true );
+
+					$data = array();
+
+					if (isset( $this->opt['url'] )) {
+						$data['kml'] = $this->opt['url'];
+					}
+
+					wp_localize_script( 'irnantomap', 'mapdata', $data);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Add async & defer attribute
+	 * @param string $tag    src
+	 * @param string $handle Name of the script
+	 */
+	public function add_async_defer_attribute($tag, $handle) {
+	  if ( 'googleapis' !== $handle ) {
+	      return $tag;
+	  } else {
+	      return str_replace( ' src', ' async src', $tag );
+	  }
 	}
 
 }
