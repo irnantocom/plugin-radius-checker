@@ -1,0 +1,41 @@
+{
+    "name": "stepandalecky/kml-parser",
+    "type": "library",
+    "description": "Turn KML file into objects",
+    "keywords": ["kml", "parse", "parser", "google maps", "google earth"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stepan Dalecky",
+            "homepage": "http://www.stepandalecky.cz",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "incoming+stepandalecky/kml-parser@gitlab.com",
+        "issues": "https://gitlab.com/stepandalecky/kml-parser/issues"
+    },
+    "require": {
+        "php": ">=7.0",
+        "stepandalecky/xml-element": "^0.2.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        }
+    },
+    "scripts": {
+        "units": "phpunit tests/StepanDaleckyTests",
+        "check": [
+            "@units"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "StepanDaleckyTests\\": "tests/StepanDaleckyTests/"
+        }
+    }
+}

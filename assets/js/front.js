@@ -15,37 +15,5 @@ function initMap() {
     //   // const text = kmlEvent.featureData.description;
     //   console.log(kmlEvent.featureData)
     // });
-    // 
-    kmlLayer.addListener("tilesloaded", (kmlEvent) => {
-      // const text = kmlEvent.featureData.description;
-      console.log(kmlEvent.featureData)
-    });
-    
-    // kmlLayer.addListener(search_address);
-
-    // kmlLayer.addEventListener('load', (event) => {
-    //     event.featureData.map(search_address)
-    //     // console.log('page is fully loaded');
-        
-    //     var BreakException = {};
-
-    //     try {
-    //       event.featureData.forEach(function(el) {
-    //         console.log(el);
-    //         if (el.name == "Melbourne CBD") throw BreakException;
-    //       });
-    //     } catch (e) {
-    //       if (e !== BreakException) throw e;
-    //     }
-    // });
-    
-
-  }
-
-}
-
-function search_address(data) {
-  if (data.name == "Melbourne CBD") {
-    console.log('asd')
   }
 }

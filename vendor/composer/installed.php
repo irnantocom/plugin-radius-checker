@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'type' => 'library',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'reference' => '91c8d3815a7efd912172806fcef53083ed9ae5e7',
+        'name' => '__root__',
+        'dev' => true,
+    ),
+    'versions' => array(
+        '__root__' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'reference' => '91c8d3815a7efd912172806fcef53083ed9ae5e7',
+            'dev_requirement' => false,
+        ),
+        'stepandalecky/kml-parser' => array(
+            'pretty_version' => 'v0.2.2',
+            'version' => '0.2.2.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../stepandalecky/kml-parser',
+            'aliases' => array(),
+            'reference' => 'df5331679c8fd7238d21a5a9b8076fc766aedfd5',
+            'dev_requirement' => false,
+        ),
+        'stepandalecky/xml-element' => array(
+            'pretty_version' => 'v0.2.2',
+            'version' => '0.2.2.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../stepandalecky/xml-element',
+            'aliases' => array(),
+            'reference' => 'bc4065c26b4ecb2961b366efa5334fe90b196d65',
+            'dev_requirement' => false,
+        ),
+    ),
+);

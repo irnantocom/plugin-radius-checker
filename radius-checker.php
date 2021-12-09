@@ -28,6 +28,9 @@ You should have received a copy of the GNU General Public License
 along with 'Radius Checker'. If not, see https://www.gnu.org/licenses/gpl-2.0.html.
 */
 
+require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+use StepanDalecky\KmlParser\Parser;
+
 /**
  * Class IrnantoRadiusChecker for first setup
  */
@@ -65,6 +68,7 @@ class IrnantoRadiusChecker {
 		add_shortcode( 'radius-checker', array( $this, 'form_radius_checker' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		// add_filter( 'script_loader_tag', 'add_async_defer_attribute', 10, 2 );
+		add_action( 'template_redirect', array( $this, 'check_submit' ) );
 
 		$this->opt = get_option( 'irnanto_settings_radius' );
 	}
@@ -118,6 +122,30 @@ class IrnantoRadiusChecker {
 				'name'      => 'url',
 			)
 		);
+		add_settings_field(
+			'actionurl',
+			__( 'Action URL (inside the radius)', 'irnanto' ),
+			array( $this, 'url' ),
+			'irnanto-settings-radius',
+			'irnanto_section_radius',
+			array(
+				'label_for' => 'actionurl',
+				'required'  => true,
+				'name'      => 'actionurl',
+			)
+		);
+		add_settings_field(
+			'actionurloutside',
+			__( 'Action URL (outside the radius)', 'irnanto' ),
+			array( $this, 'url' ),
+			'irnanto-settings-radius',
+			'irnanto_section_radius',
+			array(
+				'label_for' => 'actionurloutside',
+				'required'  => true,
+				'name'      => 'actionurloutside',
+			)
+		);
 
 	}
 
@@ -157,6 +185,10 @@ class IrnantoRadiusChecker {
 		$value    = '';
 		if ( 'url' === $args['label_for'] ) {
 			$value = isset( $this->opt['url'] ) ? $this->opt['url'] : '';
+		} elseif ( 'actionurl' === $args['label_for'] ) {
+			$value = isset( $this->opt['actionurl'] ) ? $this->opt['actionurl'] : '';
+		} elseif ( 'actionurloutside' === $args['label_for'] ) {
+			$value = isset( $this->opt['actionurloutside'] ) ? $this->opt['actionurloutside'] : '';
 		}
 
 		if ( isset( $args['disabled'] ) ) {
@@ -202,12 +234,68 @@ class IrnantoRadiusChecker {
 		<form method="post">
 			<h2>Check whether an address is inside or outside of the service area ?</h2>
 			<label for="address">Address :</label><input type="text" name="address" id="address">
+			<?php wp_nonce_field( 'irnanto_find_location', 'nonce' ); ?>
 			<input type="submit" name="check" value="Check">
 		</form>
 		<div id="container">
-	      <div id="map"></div>
-	    </div>
+		  <div id="map"></div>
+		</div>
 		<?php
+	}
+
+	/**
+	 * Check submit find place
+	 */
+	public function check_submit() {
+		if ( is_singular() ) {
+			global $post;
+			if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'radius-checker' ) ) {
+				if ( isset( $_POST['nonce'] ) ) {
+					$nonce = $_POST['nonce'];
+					if ( wp_verify_nonce( $nonce, 'irnanto_find_location' ) ) {
+						$address = sanitize_text_field( $_POST['address'] );
+
+						if ( isset( $this->opt['url'] ) ) {
+							$kml = $this->opt['url'];
+							$url = get_home_url();
+
+							$parser = Parser::fromFile( $kml );
+							// $parser = Parser::fromString($xmlString);
+
+							$kml      = $parser->getKml();
+							$document = $kml->getDocument();
+
+							$folders   = $document->getFolders();
+							$placemark = $folders[0]->getPlacemarks();
+
+							$detect = false;
+							foreach ( $placemark as $key => $place ) {
+								if ( $place->hasName() ) {
+									$place_name = $place->getName();
+									if ( $address == $place_name ) {
+										$detect = true;
+										break;
+									}
+								}
+							}
+
+							if ( $detect ) {
+								if ( isset( $this->opt['actionurl'] ) ) {
+									$url = $this->opt['actionurl'];
+								}
+							} else {
+								if ( isset( $this->opt['actionurloutside'] ) ) {
+									$url = $this->opt['actionurloutside'];
+								}
+							}
+
+							wp_redirect( $url, 301 );
+							exit();
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -217,17 +305,17 @@ class IrnantoRadiusChecker {
 		if ( is_singular() ) {
 			global $post;
 			if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'radius-checker' ) ) {
-				if (isset( $this->opt['api'] )) {
+				if ( isset( $this->opt['api'] ) ) {
 					wp_enqueue_script( 'irnantomap', plugin_dir_url( __FILE__ ) . 'assets/js/front.js', array(), '1.0.0', true );
-					wp_enqueue_script('googleapis', esc_url( add_query_arg( 'key', $this->opt['api'].'&callback=initMap', '//maps.googleapis.com/maps/api/js' )), array(), '1.0.0', true );
+					wp_enqueue_script( 'googleapis', esc_url( add_query_arg( 'key', $this->opt['api'] . '&callback=initMap', '//maps.googleapis.com/maps/api/js' ) ), array(), '1.0.0', true );
 
 					$data = array();
 
-					if (isset( $this->opt['url'] )) {
+					if ( isset( $this->opt['url'] ) ) {
 						$data['kml'] = $this->opt['url'];
 					}
 
-					wp_localize_script( 'irnantomap', 'mapdata', $data);
+					wp_localize_script( 'irnantomap', 'mapdata', $data );
 				}
 			}
 		}
@@ -235,15 +323,16 @@ class IrnantoRadiusChecker {
 
 	/**
 	 * Add async & defer attribute
+	 *
 	 * @param string $tag    src
 	 * @param string $handle Name of the script
 	 */
-	public function add_async_defer_attribute($tag, $handle) {
-	  if ( 'googleapis' !== $handle ) {
-	      return $tag;
-	  } else {
-	      return str_replace( ' src', ' async src', $tag );
-	  }
+	public function add_async_defer_attribute( $tag, $handle ) {
+		if ( 'googleapis' !== $handle ) {
+			return $tag;
+		} else {
+			return str_replace( ' src', ' async src', $tag );
+		}
 	}
 
 }
